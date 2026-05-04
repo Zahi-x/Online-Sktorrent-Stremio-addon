@@ -3,7 +3,7 @@
 // Note: Use Node.js v20.09 LTS for testing (https://nodejs.org/en/blog/release/v20.9.0)
 const { addonBuilder, serveHTTP } = require("stremio-addon-sdk");
 const axios = require("axios");
-@@ -19,6 +19,11 @@ const builder = addonBuilder({
+const builder = addonBuilder({
 idPrefixes: ["tt"]
 });
 
@@ -15,7 +15,7 @@ const commonHeaders = {
 function removeDiacritics(str) {
 return str.normalize("NFD").replace(/\p{Diacritic}/gu, "");
 }
-@@ -63,13 +68,14 @@ function formatName(fullTitle, flagsArray) {
+function formatName(fullTitle, flagsArray) {
 async function getTitleFromIMDb(imdbId) {
 try {
 const url = `https://www.imdb.com/title/${imdbId}/`;
@@ -87,7 +87,7 @@ return null;
 const $ = cheerio.load(res.data);
 const titleRaw = $('title').text().split(' - ')[0].trim();
 const title = decode(titleRaw);
-@@ -79,8 +85,8 @@ async function getTitleFromIMDb(imdbId) {
+async function getTitleFromIMDb(imdbId) {
 const json = JSON.parse(ldJson);
 if (json && json.name) originalTitle = decode(json.name.trim());
 }
@@ -98,7 +98,7 @@ if (json && json.name) originalTitle = decode(json.name.trim());
 return { title, originalTitle };
 } catch (err) {
 console.error("[ERROR] IMDb scraping zlyhal:", err.message);
-@@ -92,7 +98,10 @@ async function searchOnlineVideos(query) {
+async function searchOnlineVideos(query) {
 const searchUrl = `https://online.sktorrent.eu/search/videos?search_query=${encodeURIComponent(query)}`;
 console.log(`[INFO] 🔍 Hľadám '${query}' na ${searchUrl}`);
 try {
@@ -110,7 +110,7 @@ try {
 const $ = cheerio.load(res.data);
 const links = [];
 $("a[href^='/video/']").each((i, el) => {
-@@ -102,6 +111,7 @@ async function searchOnlineVideos(query) {
+async function searchOnlineVideos(query) {
 if (match) links.push(match[1]);
 }
 });
@@ -118,7 +118,7 @@ if (match) links.push(match[1]);
 console.log(`[INFO] 📺 Nájdených videí: ${links.length}`);
 return links;
 } catch (err) {
-@@ -114,7 +124,10 @@ async function extractStreamsFromVideoId(videoId) {
+async function extractStreamsFromVideoId(videoId) {
 const url = `https://online.sktorrent.eu/video/${videoId}`;
 console.log(`[DEBUG] 🔎 Načítavam detaily videa: ${url}`);
 try {
