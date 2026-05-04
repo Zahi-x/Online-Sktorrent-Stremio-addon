@@ -19,15 +19,69 @@ return str.normalize("NFD").replace(/\p{Diacritic}/gu, "");
 async function getTitleFromIMDb(imdbId) {
 try {
 const url = `https://www.imdb.com/title/${imdbId}/`;
-        const res = await axios.get(url, {
-            headers: { "User-Agent": "Mozilla/5.0" }
-        });
         console.log(`[DEBUG] 🌐 IMDb Request: ${url}`);
-        const res = await axios.get(url, { headers: commonHeaders });
+        
+        // Add a delay to avoid being blocked
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const res = await axios.get(url, { 
+            headers: { 
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate, br"
+            }
+        });
 
 if (res.status === 404) {
 console.error("[ERROR] IMDb scraping zlyhal: stránka neexistuje (404)");
 return null;
+}
+
+const $ = cheerio.load(res.data);
+
+// Try multiple methods to get the title
+let title = null;
+let originalTitle = null;
+
+// Method 1: Try JSON-LD first (most reliable)
+const ldJson = $('script[type="application/ld+json"]').first().html();
+if (ldJson) {
+    try {
+        const json = JSON.parse(ldJson);
+        if (json.name) {
+            originalTitle = decode(json.name.trim());
+            console.log(`[DEBUG] Found from JSON-LD: ${originalTitle}`);
+        }
+    } catch(e) {}
+}
+
+// Method 2: Try meta tags
+if (!title) {
+    const metaTitle = $('meta[property="og:title"]').attr('content');
+    if (metaTitle) {
+        title = decode(metaTitle.split('(')[0].trim());
+        console.log(`[DEBUG] Found from meta: ${title}`);
+    }
+}
+
+// Method 3: Try title tag as fallback
+if (!title) {
+    const titleText = $('title').text();
+    if (titleText) {
+        title = decode(titleText.split(' - ')[0].trim());
+        console.log(`[DEBUG] Found from title tag: ${title}`);
+    }
+}
+
+console.log(`[DEBUG] 🎬 Lokalizovaný názov: ${title}`);
+console.log(`[DEBUG] 🌐 Originálny názov: ${originalTitle}`);
+
+return { title, originalTitle };
+} catch (err) {
+console.error("[ERROR] IMDb scraping zlyhal:", err.message);
+return null;
+}
 }
 
 const $ = cheerio.load(res.data);
